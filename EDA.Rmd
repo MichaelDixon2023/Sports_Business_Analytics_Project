@@ -1,0 +1,115 @@
+---
+title: "NFL Data Analyst Sample Analysis"
+author: "Michael Dixon"
+date: "9/3/24"
+output:
+  pdf_document:
+    extra_dependencies: amsmath
+  word_document: default
+---
+
+
+```{r, include=FALSE}
+library(dplyr)
+library(stringr)
+library(readr)
+library(ggplot2)
+library(ggpubr)
+library(scales)
+library(corrplot)
+library(car)
+Training_Data <- read_csv("Training_Data.csv", na = "#N/A")
+Testing <- read_csv("Testing_Data.csv")
+```
+
+
+For this report, I wanted to start with some exploratory data analysis on a few of the factors that seem most relevant to a hypothetical NFL organization. The first element of the data I wanted to assess was where current season ticket holders reside. I thus created two graphs, one showing the five most common locations (Figure 1) appearing in the data and a second showing how many NA values exist within the Distance From the Stadium column (Figure 2).  
+
+```{r, echo=FALSE}
+top_5_states <- Training_Data %>%
+  count(State, sort = TRUE) %>%
+  slice_max(n, n = 5)
+
+filtered_data <- Training_Data %>%
+  semi_join(top_5_states, by = "State")
+
+
+state_plot <- ggplot(filtered_data, aes(x = State)) +
+  geom_bar(fill = "royalblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Bar Graph of Top 5 States",
+       x = "States",
+       y = "Frequency", caption = "Figure 1: Boxplot Count of Five Most Common States")
+
+Training_Data <- Training_Data %>%
+  mutate(Distance_Category = ifelse(is.na(`Distance From Stadium`), "NA", "Not NA"))
+
+
+Distance_plot <- ggplot(Training_Data, aes(x = Distance_Category)) +
+  geom_bar(fill = "red", color = "black") +
+  theme_minimal() +
+  labs(title = "NA vs. Not NA Distances",
+       x = "Distance Category",
+       y = "Frequency", caption = "Figure 2: Count of NA Values vs non-NA Values")
+```
+
+
+```{r, fig.width=3.5, fig.height=4, echo=FALSE}
+state_plot
+Distance_plot
+```
+
+The most common state where season ticket holders reside is New York. Interestingly, Ontario, Canada is the second most frequent area that fans draw from, which is surprising given it is a province of Canada and the NFL is comprised exclusively of teams in the United States. As for the distance-to-the-stadium values, my initial belief that those values could be useful for some potential modelling turned out to be incorrect given how many values are missing (as reflected by their NA status). With so many missing values, substantial data manipulation would likely be required and even then, the distance-to-the-stadium values might not provide anything useful to the model. For that reason, I have omitted those values from my analysis.
+
+
+Next, I wanted to examine how well the team retains customers by looking at the tenure of the team's season ticket holders. I plotted the histogram below (Figure 3) to examine this phenomenon. 
+
+
+
+```{r, echo=FALSE}
+Years_Plot <- ggplot(Training_Data, aes(x = tenure)) +
+  geom_histogram(binwidth = 8,
+                 fill = "royalblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Tenure of Season Ticket Holders",
+       x = "Tenure (years)",
+       y = "Frequency", caption = "Figure 3: Histogram of Season Ticket Holder Tenure") +
+  scale_x_continuous(labels = label_comma(), breaks = seq(0, max(Training_Data$tenure, na.rm = TRUE), by = 10))
+
+print(Years_Plot)
+```
+
+This chart is particularly valuable because it has been estimated that acquiring new customers can be five times more expensive than retaining old ones. In this plot, we can see that while there are certainly many long-standing customers (exceeding 50 years as season ticket holders), there are far more relatively new customers (less than five years). Information like this would be crucial for the business analytics team to know. 
+
+Finally, I wanted to examine if "perks" might influence a customer's decision to renew season tickets. In the dataset, the 'club-flag' identifies premium tickets that offer prime sections of the stadium and added benefits. The bar chart  below (Figure 4) analyzes if there is a stark difference between the club seat retention and the non-club seat retention. 
+
+```{r, echo=FALSE}
+Section_Plot <- ggplot(Training_Data, aes(y = factor(club_flag), fill = factor(Renewed))) +
+  geom_bar() +
+  labs(title = "Non-Club vs Club Renewal", 
+       x = "Count of Renewal", 
+       y = "Club Flag", 
+       caption = "Figure 4: Boxplot of Renewal, by Club Status") +
+  scale_fill_manual(name = "Renewal (binary)", 
+                    values = c("red", "royalblue"),
+                    labels = c("No Renewal", "Renewed")) +
+  theme_bw()
+
+Section_Plot
+
+```
+
+In this result, we can see that while a much smaller percentage of the season tickets sold had club access, the team had a higher number of them renew their tickets compared to the average. Other factors could be at play here (for example, perhaps more club tickets are owned by corporations and are more likely to be renewed as a corporate expense). Regardless, these benefits seem to hold weight with the clients. 
+
+
+
+
+
+
+
+
+
+
+
+
+
